@@ -1,0 +1,46 @@
+name: Full AKS + APIM + Apps CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # Login a Azure
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # Crear infraestructura con Terraform
+    - name: Terraform Init & Apply
+      run: |
+        cd terraform
+        terraform init
+        terraform apply -auto-approve
+
+    # Construir y subir imágenes al ACR usando Docker del runner
+    - name: Build microservices in ACR
+      env:
+        ACR_LOGIN_SERVER: carlos69lamejor.azurecr.io
+        ACR_USER: ${{ secrets.ACR_USER }}
+        ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+      run: |
+        echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER -u $ACR_USER --password-stdin
+        docker build -t $ACR_LOGIN_SERVER/app1:v1 ../app/app1
+        docker push $ACR_LOGIN_SERVER/app1:v1
+        docker build -t $ACR_LOGIN_SERVER/app2:v1 ../app/app2
+        docker push $ACR_LOGIN_SERVER/app2:v1
+        docker build -t $ACR_LOGIN_SERVER/app3:v1 ../app/app3
+        docker push $ACR_LOGIN_SERVER/app3:v1
+
+    # Desplegar las apps a AKS
+    - name: Deploy to AKS
+      run: |
+        az aks get-credentials --resource-group rg-k8s-lab --name aks-lab5
+        kubectl apply -f terraform/k8s/apps.yaml

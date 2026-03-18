@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app1
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: app1 }
+  template:
+    metadata: { labels: { app: app1 } }
+    spec:
+      containers:
+      - name: app1
+        image: carlos69lamejor.azurecr.io/app1:v1
+        ports: [{ containerPort: 80 }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: app1-service }
+spec:
+  type: ClusterIP
+  selector: { app: app1 }
+  ports: [{ port: 80, targetPort: 80 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: app2 }
+  template:
+    metadata: { labels: { app: app2 } }
+    spec:
+      containers:
+      - name: app2
+        image: carlos69lamejor.azurecr.io/app2:v1
+        ports: [{ containerPort: 80 }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: app2-service }
+spec:
+  type: ClusterIP
+  selector: { app: app2 }
+  ports: [{ port: 80, targetPort: 80 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app3
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: app3 }
+  template:
+    metadata: { labels: { app: app3 } }
+    spec:
+      containers:
+      - name: app3
+        image: carlos69lamejor.azurecr.io/app3:v1
+        ports: [{ containerPort: 80 }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: app3-service }
+spec:
+  type: ClusterIP
+  selector: { app: app3 }
+  ports: [{ port: 80, targetPort: 80 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apps-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: "app1.carloslab.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend: { service: { name: app1-service, port: { number: 80 } } }
+  - host: "app2.carloslab.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend: { service: { name: app2-service, port: { number: 80 } } }
+  - host: "app3.carloslab.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend: { service: { name: app3-service, port: { number: 80 } } }
